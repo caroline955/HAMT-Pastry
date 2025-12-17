@@ -4,26 +4,25 @@ const path = require('path');
 const app = express();
 const port = 3000;
 
-// 1. Cấu hình thư mục chứa giao diện (Lưu ý: Public viết hoa chữ P nếu thư mục là Public)
+// 1. SỬA LỖI ĐƯỜNG DẪN: Public viết hoa
 app.use(express.static(path.join(__dirname, 'Public')));
 app.use(express.json());
 
-// 2. Kết nối Database
-// LƯU Ý QUAN TRỌNG: Bạn nhớ thay các thông tin bên dưới bằng thông tin thật của Database Online nhé
+// 2. SỬA LỖI DATABASE: Điền thông tin thật của bạn vào đây
 const db = mysql.createConnection({
-    host: 'ten-host-dai-ngoang.services.clever-cloud.com', 
-    user: 'ten-user-online',
-    password: 'mat-khau-online',
-    database: 'ten-database-online',
-    port: 3306 
-});
+    host: 'localhost',      // Hoặc host online của bạn
+    user: 'root',           // User MySQL
+    password: '',           // Mật khẩu MySQL
+    database: 'bakery_db',  // Tên Database
+    port: 3306
+}); // Đã xóa chữ "có" thừa ở đây
 
 db.connect(err => {
     if (err) console.log('Lỗi kết nối SQL:', err);
     else console.log('Đã kết nối MySQL thành công!');
 });
 
-// 3. API lấy danh sách sản phẩm
+// API lấy danh sách sản phẩm
 app.get('/api/products', (req, res) => {
     const sql = "SELECT * FROM products";
     db.query(sql, (err, results) => {
@@ -32,7 +31,7 @@ app.get('/api/products', (req, res) => {
     });
 });
 
-// API lấy chi tiết 1 sản phẩm (Cần thêm cái này để trang Detail chạy)
+// API lấy chi tiết sản phẩm (cần cho trang product-detail.html)
 app.get('/api/products/:id', (req, res) => {
     const id = req.params.id;
     const sql = "SELECT * FROM products WHERE id = ?";
@@ -43,7 +42,6 @@ app.get('/api/products/:id', (req, res) => {
     });
 });
 
-// 4. Chạy Server
 app.listen(port, () => {
     console.log(`Web đang chạy tại: http://localhost:${port}`);
 });
