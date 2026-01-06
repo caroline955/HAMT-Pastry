@@ -595,6 +595,26 @@ input[type="file"]{width:100%;font-size:13px;padding:8px}
 </div>
 
 <script>
+// ============================================
+// CHECK ADMIN LOGIN
+// ============================================
+const adminData = localStorage.getItem('hamt_admin');
+if (!adminData) {
+  alert('Vui lòng đăng nhập admin!');
+  window.location.href = 'admin-login.html';
+}
+
+const admin = JSON.parse(adminData);
+console.log('Admin logged in:', admin);
+
+// Update admin name in UI
+document.querySelectorAll('.profile-text .name').forEach(el => {
+  el.textContent = admin.username.toUpperCase();
+});
+
+// ============================================
+// MAIN SCRIPT
+// ============================================
 const $={
   productList:document.getElementById('productList'),
   orderList:document.getElementById('orderList'),

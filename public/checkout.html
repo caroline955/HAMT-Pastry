@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HAMT Pastry - Checkout</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f5f5f5;
+    }
+
+    .header {
+      background-color: #8B7355;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .nav {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-top: 15px;
+    }
+
+    .nav a {
+      color: white;
+      text-decoration: none;
+      font-size: 16px;
+      padding: 5px 10px;
+    }
+
+    .nav a:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 30px auto;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
+
+    .cart-section {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .cart-section h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .cart-item {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .cart-item img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .cart-item-info {
+      flex: 1;
+    }
+
+    .cart-item-info h3 {
+      font-size: 18px;
+      margin-bottom: 5px;
+    }
+
+    .cart-item-info .price {
+      color: #8B7355;
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    .quantity-control {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .quantity-control button {
+      width: 30px;
+      height: 30px;
+      border: 1px solid #ddd;
+      background: white;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .quantity-control button:hover {
+      background: #f0f0f0;
+    }
+
+    .cart-summary {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 2px solid #eee;
+    }
+
+    .cart-summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .cart-summary-row.total {
+      font-size: 20px;
+      font-weight: bold;
+      color: #8B7355;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 2px solid #8B7355;
+    }
+
+    .voucher-section {
+      margin-top: 20px;
+    }
+
+    .voucher-section input {
+      width: 70%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-right: 10px;
+    }
+
+    .voucher-section button {
+      padding: 10px 20px;
+      background: #8B7355;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .voucher-section button:hover {
+      background: #6d5a43;
+    }
+
+    .delivery-section {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .delivery-section h2 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .payment-button {
+      width: 100%;
+      padding: 15px;
+      background: #8B7355;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
+    .payment-button:hover {
+      background: #6d5a43;
+    }
+
+    .payment-button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .message {
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      display: none;
+    }
+
+    .message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .message.show {
+      display: block;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>HAMT</h1>
+    <div class="nav">
+      <a href="/">HOME</a>
+      <a href="/products">PRODUCT</a>
+      <a href="/how-to-buy">HOW TO BUY</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- CART SECTION -->
+    <div class="cart-section">
+      <h2>CART (<span id="cart-count">0</span>)</h2>
+      
+      <div id="cart-items"></div>
+      
+      <div class="voucher-section">
+        <input type="text" id="voucher-code" placeholder="Nhập mã voucher">
+        <button onclick="applyVoucher()">Áp dụng</button>
+      </div>
+      
+      <div class="cart-summary">
+        <div class="cart-summary-row">
+          <span>SUBTOTAL</span>
+          <span id="subtotal">0đ</span>
+        </div>
+        <div class="cart-summary-row">
+          <span>Voucher</span>
+          <span id="discount">0đ</span>
+        </div>
+        <div class="cart-summary-row">
+          <span>Phí vận chuyển</span>
+          <span id="shipping">30,000đ</span>
+        </div>
+        <div class="cart-summary-row total">
+          <span>TOTAL</span>
+          <span id="total">30,000đ</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- DELIVERY SECTION -->
+    <div class="delivery-section">
+      <h2>Delivery</h2>
+      
+      <div id="message" class="message"></div>
+      
+      <form id="delivery-form">
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" id="name" name="name" required>
+        </div>
+        
+        <div class="form-group">
+          <label>Phone number</label>
+          <input type="tel" id="phone" name="phone" required>
+        </div>
+        
+        <div class="form-group">
+          <label>Address</label>
+          <textarea id="address" name="address" required></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label>Delivery date</label>
+          <input type="date" id="delivery-date" name="delivery_date">
+        </div>
+        
+        <div class="form-group">
+          <label>Delivery time</label>
+          <input type="time" id="delivery-time" name="delivery_time">
+        </div>
+        
+        <button type="submit" class="payment-button">Payment</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // ============================================
+    // CHECK LOGIN & AUTO-FILL
+    // ============================================
+    const customerData = localStorage.getItem('hamt_customer');
+    let currentCustomer = null;
+
+    if (customerData) {
+      currentCustomer = JSON.parse(customerData);
+      console.log('Customer logged in:', currentCustomer);
+
+      // Auto-fill delivery form
+      document.getElementById('name').value = currentCustomer.username || '';
+      document.getElementById('phone').value = currentCustomer.phone || '';
+      document.getElementById('email').value = currentCustomer.email || '';
+    }
+
+    // ============================================
+    // CART FUNCTIONALITY
+    // ============================================
+    // Cart data (from localStorage or session)
+    let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    let appliedVoucher = null;
+    const SHIPPING_FEE = 30000;
+
+    // Load cart on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      renderCart();
+      updateSummary();
+    });
+
+    function renderCart() {
+      const cartItemsDiv = document.getElementById('cart-items');
+      const cartCount = document.getElementById('cart-count');
+      
+      if (cart.length === 0) {
+        cartItemsDiv.innerHTML = '<p style="text-align: center; color: #999;">Giỏ hàng trống</p>';
+        cartCount.textContent = '0';
+        return;
+      }
+      
+      cartCount.textContent = cart.length;
+      
+      cartItemsDiv.innerHTML = cart.map((item, index) => `
+        <div class="cart-item">
+          <img src="${item.image_url || 'images/placeholder.jpg'}" alt="${item.name}">
+          <div class="cart-item-info">
+            <h3>${item.name}</h3>
+            <p class="price">${(item.price * item.quantity).toLocaleString()}đ</p>
+            <div class="quantity-control">
+              <button onclick="updateQuantity(${index}, -1)">-</button>
+              <span>${item.quantity}</span>
+              <button onclick="updateQuantity(${index}, 1)">+</button>
+              <button onclick="removeItem(${index})" style="margin-left: 10px; color: red;">Xóa</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updateQuantity(index, change) {
+      cart[index].quantity += change;
+      if (cart[index].quantity <= 0) {
+        cart.splice(index, 1);
+      }
+      localStorage.setItem('cart', JSON.stringify(cart));
+      renderCart();
+      updateSummary();
+    }
+
+    function removeItem(index) {
+      cart.splice(index, 1);
+      localStorage.setItem('cart', JSON.stringify(cart));
+      renderCart();
+      updateSummary();
+    }
+
+    function updateSummary() {
+      const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const discount = appliedVoucher ? appliedVoucher.discountAmount : 0;
+      const total = subtotal + SHIPPING_FEE - discount;
+      
+      document.getElementById('subtotal').textContent = subtotal.toLocaleString() + 'đ';
+      document.getElementById('discount').textContent = discount > 0 ? '-' + discount.toLocaleString() + 'đ' : '0đ';
+      document.getElementById('total').textContent = total.toLocaleString() + 'đ';
+    }
+
+    async function applyVoucher() {
+      const code = document.getElementById('voucher-code').value.trim();
+      if (!code) {
+        showMessage('Vui lòng nhập mã voucher', 'error');
+        return;
+      }
+      
+      const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      
+      try {
+        const response = await fetch('/api/vouchers/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, orderTotal: subtotal })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          appliedVoucher = data;
+          showMessage('Áp dụng voucher thành công!', 'success');
+          updateSummary();
+        } else {
+          showMessage(data.error || 'Voucher không hợp lệ', 'error');
+        }
+      } catch (error) {
+        showMessage('Lỗi kết nối server', 'error');
+      }
+    }
+
+    document.getElementById('delivery-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      if (cart.length === 0) {
+        showMessage('Giỏ hàng trống!', 'error');
+        return;
+      }
+
+      const formData = new FormData(e.target);
+      const delivery = {
+        name: formData.get('name'),
+        phone: formData.get('phone'),
+        address: formData.get('address'),
+        delivery_date: formData.get('delivery_date'),
+        delivery_time: formData.get('delivery_time')
+      };
+
+      const orderData = {
+        items: cart.map(item => ({
+          product_id: item.product_id,
+          quantity: item.quantity
+        })),
+        delivery,
+        payment: {
+          method: 'COD'
+        },
+        voucher_code: appliedVoucher ? appliedVoucher.voucher.code : null
+      };
+
+      // Check if user is logged in
+      const endpoint = currentCustomer ? '/api/orders/member' : '/api/orders/guest';
+
+      if (currentCustomer) {
+        orderData.customer_id = currentCustomer.customer_id;
+      }
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderData)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          showMessage(data.message, 'success');
+
+          // Update membership if logged in
+          if (currentCustomer && data.membership) {
+            localStorage.setItem('hamt_membership', JSON.stringify(data.membership));
+          }
+
+          // Clear cart
+          cart = [];
+          localStorage.setItem('cart', JSON.stringify(cart));
+          renderCart();
+          updateSummary();
+          e.target.reset();
+
+          // Redirect to success page after 2 seconds
+          setTimeout(() => {
+            alert(`Đơn hàng #${data.order_id} đã được tạo thành công!`);
+            window.location.href = 'home web.html';
+          }, 1000);
+        } else {
+          showMessage(data.error || 'Đặt hàng thất bại', 'error');
+        }
+      } catch (error) {
+        showMessage('Lỗi kết nối server', 'error');
+      }
+    });
+
+    function showMessage(text, type) {
+      const messageDiv = document.getElementById('message');
+      messageDiv.textContent = text;
+      messageDiv.className = `message ${type} show`;
+      setTimeout(() => {
+        messageDiv.classList.remove('show');
+      }, 5000);
+    }
+  </script>
+</body>
+</html>

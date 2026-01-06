@@ -390,9 +390,58 @@
             // Toggle type attribute
             const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
             passwordField.setAttribute('type', type);
-            
+
             // Toggle icon color để biết trạng thái
             this.style.color = type === 'text' ? '#8b7355' : '#777';
+        });
+
+        // ============================================
+        // LOGIN FUNCTIONALITY
+        // ============================================
+        const emailInput = document.querySelector('input[placeholder="Enter your phone number or email"]');
+        const continueBtn = document.querySelector('.btn-continue');
+
+        continueBtn.addEventListener('click', async () => {
+            const email = emailInput.value.trim();
+            const password = passwordField.value.trim();
+
+            if (!email || !password) {
+                alert('Vui lòng nhập đầy đủ email và password!');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Lưu thông tin customer vào localStorage
+                    localStorage.setItem('hamt_customer', JSON.stringify(data.customer));
+                    localStorage.setItem('hamt_membership', JSON.stringify(data.membership));
+
+                    alert(data.message);
+
+                    // Redirect về trang home
+                    window.location.href = 'home web.html';
+                } else {
+                    alert(data.error || 'Đăng nhập thất bại!');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                alert('Lỗi kết nối server!');
+            }
+        });
+
+        // Enter key to login
+        passwordField.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                continueBtn.click();
+            }
         });
     </script>
 <script src="main.js"></script>

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>API Test - HAMT PASTRY</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:14px/1.5 monospace;padding:20px;background:#1e1e1e;color:#d4d4d4}
+.container{max-width:1200px;margin:0 auto}
+h1{color:#4ec9b0;margin-bottom:20px}
+.section{background:#252526;border:1px solid #3e3e42;border-radius:8px;padding:20px;margin-bottom:20px}
+.section h2{color:#dcdcaa;margin-bottom:15px;font-size:16px}
+.test-btn{background:#0e639c;color:#fff;border:none;padding:10px 20px;border-radius:4px;cursor:pointer;margin:5px;font-size:13px}
+.test-btn:hover{background:#1177bb}
+.result{background:#1e1e1e;border:1px solid #3e3e42;border-radius:4px;padding:15px;margin-top:10px;white-space:pre-wrap;font-size:12px;max-height:300px;overflow-y:auto}
+.success{color:#4ec9b0}
+.error{color:#f48771}
+input{background:#3c3c3c;border:1px solid #3e3e42;color:#d4d4d4;padding:8px 12px;border-radius:4px;margin:5px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🧪 HAMT PASTRY - API Test Suite</h1>
+  
+  <div class="section">
+    <h2>🔐 Customer Authentication</h2>
+    <div>
+      <input type="text" id="reg-username" placeholder="Username" value="testuser">
+      <input type="email" id="reg-email" placeholder="Email" value="test@example.com">
+      <input type="password" id="reg-password" placeholder="Password" value="123456">
+      <input type="text" id="reg-phone" placeholder="Phone" value="0123456789">
+      <button class="test-btn" onclick="testRegister()">Register</button>
+    </div>
+    <div style="margin-top:10px">
+      <input type="email" id="login-email" placeholder="Email" value="test@example.com">
+      <input type="password" id="login-password" placeholder="Password" value="123456">
+      <button class="test-btn" onclick="testLogin()">Login</button>
+    </div>
+    <div class="result" id="auth-result"></div>
+  </div>
+  
+  <div class="section">
+    <h2>👨‍💼 Admin Authentication</h2>
+    <div>
+      <input type="text" id="admin-username" placeholder="Username" value="admin">
+      <input type="password" id="admin-password" placeholder="Password" value="admin123">
+      <button class="test-btn" onclick="testAdminLogin()">Admin Login</button>
+    </div>
+    <div class="result" id="admin-result"></div>
+  </div>
+  
+  <div class="section">
+    <h2>📦 Products</h2>
+    <button class="test-btn" onclick="testGetProducts()">Get All Products</button>
+    <button class="test-btn" onclick="testGetProduct(1)">Get Product #1</button>
+    <div class="result" id="product-result"></div>
+  </div>
+  
+  <div class="section">
+    <h2>🎟️ Vouchers</h2>
+    <button class="test-btn" onclick="testGetVouchers()">Get All Vouchers</button>
+    <div>
+      <input type="text" id="voucher-code" placeholder="Voucher Code" value="WELCOME10">
+      <input type="number" id="order-total" placeholder="Order Total" value="500000">
+      <button class="test-btn" onclick="testValidateVoucher()">Validate Voucher</button>
+    </div>
+    <div class="result" id="voucher-result"></div>
+  </div>
+  
+  <div class="section">
+    <h2>🛒 Orders</h2>
+    <button class="test-btn" onclick="testGuestCheckout()">Guest Checkout</button>
+    <button class="test-btn" onclick="testMemberCheckout()">Member Checkout</button>
+    <div class="result" id="order-result"></div>
+  </div>
+</div>
+
+<script>
+const API_BASE = 'http://localhost:3000/api';
+
+function showResult(elementId, data, isError = false) {
+  const el = document.getElementById(elementId);
+  el.className = `result ${isError ? 'error' : 'success'}`;
+  el.textContent = JSON.stringify(data, null, 2);
+}
+
+async function testRegister() {
+  try {
+    const response = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: document.getElementById('reg-username').value,
+        email: document.getElementById('reg-email').value,
+        password: document.getElementById('reg-password').value,
+        phone: document.getElementById('reg-phone').value
+      })
+    });
+    const data = await response.json();
+    showResult('auth-result', data, !response.ok);
+  } catch (error) {
+    showResult('auth-result', { error: error.message }, true);
+  }
+}
+
+async function testLogin() {
+  try {
+    const response = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: document.getElementById('login-email').value,
+        password: document.getElementById('login-password').value
+      })
+    });
+    const data = await response.json();
+    if (response.ok && data.customer) {
+      localStorage.setItem('test_customer_id', data.customer.customer_id);
+    }
+    showResult('auth-result', data, !response.ok);
+  } catch (error) {
+    showResult('auth-result', { error: error.message }, true);
+  }
+}
+
+async function testAdminLogin() {
+  try {
+    const response = await fetch(`${API_BASE}/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: document.getElementById('admin-username').value,
+        password: document.getElementById('admin-password').value
+      })
+    });
+    const data = await response.json();
+    showResult('admin-result', data, !response.ok);
+  } catch (error) {
+    showResult('admin-result', { error: error.message }, true);
+  }
+}
+
+async function testGetProducts() {
+  try {
+    const response = await fetch(`${API_BASE}/products`);
+    const data = await response.json();
+    showResult('product-result', data, !response.ok);
+  } catch (error) {
+    showResult('product-result', { error: error.message }, true);
+  }
+}
+
+async function testGetProduct(id) {
+  try {
+    const response = await fetch(`${API_BASE}/products/${id}`);
+    const data = await response.json();
+    showResult('product-result', data, !response.ok);
+  } catch (error) {
+    showResult('product-result', { error: error.message }, true);
+  }
+}
+
+async function testGetVouchers() {
+  try {
+    const response = await fetch(`${API_BASE}/vouchers`);
+    const data = await response.json();
+    showResult('voucher-result', data, !response.ok);
+  } catch (error) {
+    showResult('voucher-result', { error: error.message }, true);
+  }
+}
+
+async function testValidateVoucher() {
+  try {
+    const response = await fetch(`${API_BASE}/vouchers/validate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code: document.getElementById('voucher-code').value,
+        orderTotal: parseInt(document.getElementById('order-total').value)
+      })
+    });
+    const data = await response.json();
+    showResult('voucher-result', data, !response.ok);
+  } catch (error) {
+    showResult('voucher-result', { error: error.message }, true);
+  }
+}
+
+async function testGuestCheckout() {
+  try {
+    const response = await fetch(`${API_BASE}/orders/guest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items: [{ product_id: 1, quantity: 2 }],
+        delivery: {
+          name: 'Test Guest',
+          phone: '0123456789',
+          address: '123 Test Street'
+        },
+        payment: { method: 'COD' }
+      })
+    });
+    const data = await response.json();
+    showResult('order-result', data, !response.ok);
+  } catch (error) {
+    showResult('order-result', { error: error.message }, true);
+  }
+}
+
+async function testMemberCheckout() {
+  const customerId = localStorage.getItem('test_customer_id');
+  if (!customerId) {
+    showResult('order-result', { error: 'Please login first!' }, true);
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${API_BASE}/orders/member`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customer_id: parseInt(customerId),
+        items: [{ product_id: 1, quantity: 2 }],
+        delivery: {
+          name: 'Test Member',
+          phone: '0123456789',
+          address: '123 Test Street'
+        },
+        payment: { method: 'COD' }
+      })
+    });
+    const data = await response.json();
+    showResult('order-result', data, !response.ok);
+  } catch (error) {
+    showResult('order-result', { error: error.message }, true);
+  }
+}
+</script>
+</body>
+</html>
+
